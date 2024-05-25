@@ -1,10 +1,10 @@
-import express from "express";
 import { config } from "dotenv";
 import connectDB from "./db/index.js";
+import app from "./app.js";
 
 config({path:'./env'});
 
-const app = express();
+const PORT = process.env.PORT || 4000;
 
 connectDB()
 .then(()=>{
@@ -12,8 +12,8 @@ connectDB()
     console.log("Error in connection : ", err);
   });
 
-  app.listen(process.env.PORT,()=>{
-    console.log(`Server is listening at ${process.env.PORT} port`);
+  app.listen(PORT,()=>{
+    console.log(`Server is listening at ${PORT} port`);
   });
 })
 .catch((err)=>{
