@@ -4,7 +4,7 @@ import app from "./app.js";
 
 config({path:'./env'});
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT;
 
 connectDB()
 .then(()=>{
