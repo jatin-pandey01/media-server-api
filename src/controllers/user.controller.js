@@ -10,7 +10,7 @@ export const registerUser = asyncHandler(
     const {username,fullname,email,password} = req.body;
     // console.log(req.body);
 
-    if([username,fullname,email,password].some((field)=>field ?.trim() === "")){
+    if([username,fullname,email,password].some((field)=>field ?.trim() === "") || (!username || !fullname || !email || !password)){
       throw new ApiError(400  ,"All fields are required")
     }
     else if(!email.includes("@") || !email.includes('.')){
@@ -25,15 +25,17 @@ export const registerUser = asyncHandler(
       throw new ApiError(409,"User with current email or username exist");
     }
 
-    const avatarLocalPath = req.files?.avatar[0].path;
-    const coverImageLocalPath = req.files?.avatar[0].path;
+    // console.log(req.files);
+
+    const avatarLocalPath = req.files?.avatar?.[0].path;
+    const coverImageLocalPath = req.files?.coverImage?.[0].path;
 
     if(!avatarLocalPath){
       throw new ApiError(400,"Avatar file is required");
     }
 
-    console.log(req.files?.avatar);
-    
+    // console.log(req.files?.avatar);
+
     const avatar = await uploadOnCloudinary(avatarLocalPath);
     const coverImage = await uploadOnCloudinary(coverImageLocalPath);
 
