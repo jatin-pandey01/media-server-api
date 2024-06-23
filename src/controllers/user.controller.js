@@ -6,8 +6,9 @@ import uploadOnCloudinary from "../utils/cloudinary.js";
 
 const generateAccessAndRefreshTokens = async(userId) => {
   try {
+    console.log(userId);
     const user = await User.findById(userId);
-
+    console.log(user);
     const refreshToken = await user.generateRefreshToken();
     const accessToken = await user.generateAccessToken();
 
@@ -90,7 +91,7 @@ export const loginUser = asyncHandler(
       throw new ApiError(400,"Username or email is required");
     }
 
-    const user = await User.findOne({$or:[{username:username},{email:email}]});
+    const user = await User.findOne({$or:[{username:username},{email:username}]});
 
     if(!user){
       throw new ApiError(404,"User does not exist");
@@ -129,6 +130,29 @@ export const loginUser = asyncHandler(
 
 export const logoutUser = asyncHandler(
   async (req,res)=>{
-    
+    await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $set:{
+          refreshToken:undefined,
+        }
+      },
+      {
+        new:true,
+      }
+    );
+
+    const options={
+      httpOnly:true,
+      secure:true,
+    }
+
+    return res
+    .status(200)
+    .clearCookie("accessToken",options)
+    .clearCookie("refreshToken",options)
+    .json(
+      new ApiResponse(true,200,{},"User logged out successfully")
+    );
   }
 );
