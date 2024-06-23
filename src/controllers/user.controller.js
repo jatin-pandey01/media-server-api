@@ -233,3 +233,67 @@ export const getCurrentUser = asyncHandler(
   }
 );
 
+export const updateUserAvatar = asyncHandler(
+  async(req,res)=>{
+    const avatarLocalPath = req.file?.path;
+
+    if(!avatarLocalPath){
+      throw new ApiError(400,"Avatar file is missing");
+    }
+
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+    if(!avatar.secure_url){
+      throw new ApiError(400,"Error while uploading on avatar");
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user?._id,
+      {
+        $set:{
+          avatar:avatar.secure_url,
+        }
+      },
+      {
+        new:true
+      }
+    ).select("-password");
+
+    return res.status(200).json(
+      new ApiResponse(true,200,user,"Avatar image updated successfully")
+    );
+  }
+);
+
+export const updateCoverImage = asyncHandler(
+  async(req,res)=>{
+    const coverImageLocalPath = req.file?.path;
+
+    if(!coverImageLocalPath){
+      throw new ApiError(400,"Cover image file is missing");
+    }
+
+    const avatar = await uploadOnCloudinary(coverImageLocalPath);
+
+    if(!avatar.secure_url){
+      throw new ApiError(400,"Error while uploading on avatar");
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user?._id,
+      {
+        $set:{
+          coverImage:avatar.secure_url,
+        }
+      },
+      {
+        new:true
+      }
+    ).select("-password");
+
+    return res.status(200).json(
+      new ApiResponse(true,200,user,"Cover image updated successfully")
+    );
+    
+  }
+);
