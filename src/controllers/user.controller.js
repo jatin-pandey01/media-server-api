@@ -3,6 +3,10 @@ import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import uploadOnCloudinary from "../utils/cloudinary.js";
+import jwt from "jsonwebtoken";
+import { config } from "dotenv";
+
+config();
 
 const generateAccessAndRefreshTokens = async(userId) => {
   try {
@@ -13,7 +17,7 @@ const generateAccessAndRefreshTokens = async(userId) => {
     const accessToken = await user.generateAccessToken();
 
     user.refreshToken = refreshToken;
-    user.save({validateBeforeSave:false});
+    await user.save({validateBeforeSave:false});
 
     return {accessToken,refreshToken};
 
@@ -130,6 +134,7 @@ export const loginUser = asyncHandler(
 
 export const logoutUser = asyncHandler(
   async (req,res)=>{
+    console.log(req.user);
     await User.findByIdAndUpdate(
       req.user._id,
       {
@@ -156,3 +161,75 @@ export const logoutUser = asyncHandler(
     );
   }
 );
+
+export const refreshAccessToken = asyncHandler(
+  async(req,res) => {
+    
+    try {
+      const token = req.cookies?.refreshToken || req.header("Authorization")?.replace("Bearer ","");
+  
+      if(!token){
+        throw new ApiError(401,"Unauthorized request");
+      }
+  
+      const decodeToken = await jwt.verify(token,process.env.REFRESH_TOKEN_SECRET);
+  
+      const user = await User.findById(decodeToken?._id);
+  
+      if(!user){
+        throw new ApiError(401,"Invalid refresh Token");
+      }
+  
+      if(token !== user.refreshToken){
+        throw new ApiError(401,"Refresh token is expired or used");
+      }
+  
+      const options = {
+        httpOnly:true,
+        secure:true,
+      };
+  
+      const {accessToken,refreshToken} = await generateAccessAndRefreshTokens(user._id);
+  
+      return res
+      .status(200)
+      .cookie("accessToken",accessToken,options)
+      .cookie("refreshToken",refreshToken,options)
+      .json(
+        new ApiResponse(true,200,{accessToken,refreshToken},"Access token refreshed")
+      );
+    } catch (error) {
+      throw new ApiError(500,error?.message || "Something went wrong while refreshing access token");
+    }
+  }
+);
+
+export const changeCurrentPassword = asyncHandler(
+  async(req,res)=>{
+    const {oldPassword,newPassword} = req.body;
+    
+    const user = await User.findById(req.user?._id);
+
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+    
+    if(!isPasswordCorrect){
+      throw new ApiError(401,"Wrong old password")
+    }
+
+    user.password = newPassword;
+    await user.save({validateBeforeSave:false});
+
+    return res.status(200).json(
+      new ApiResponse(true,200,{},"Password changed successful")
+    );
+  }
+);
+
+export const getCurrentUser = asyncHandler(
+  async(req,res)=>{
+    return res.status(200).json(
+      new ApiResponse(true,200,req.user,"Current user fetched successfully")
+    );
+  }
+);
+
