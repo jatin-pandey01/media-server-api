@@ -5,6 +5,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 import uploadOnCloudinary from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
 import { config } from "dotenv";
+import mongoose from "mongoose";
 
 config();
 
@@ -368,5 +369,51 @@ export const getUserChannelProfile = asyncHandler(
     return res.status(200).json(
       new ApiResponse(true,200,channel,"User channel fetched successfully")
     );
+  }
+);
+
+export const getWatchHistory = asyncHandler(
+  async(req,res) => {
+    const user = await User.aggregate([
+      {
+        $match:{
+          _id: mongoose.Types.ObjectId(req.user?._id), 
+        }
+      },
+      {
+        $lookup:{
+          from:"videos",
+          localField:"watchHistory",
+          foreignField:"_id",
+          as:"watchHistory",
+          pipeline:[ //Nested pipeline
+            {
+              $lookup:{
+                from:"users",
+                localField:"owner",
+                foreignField:"_id",
+                as:"owner",
+                pipeline:[
+                  {
+                    $project:{
+                      fullname:true,
+                      username:1,
+                      avatar:1
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              $addFields:{
+                owner:{
+                  $first:"$owner"
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]);
   }
 );
