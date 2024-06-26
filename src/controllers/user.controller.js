@@ -141,7 +141,11 @@ export const logoutUser = asyncHandler(
       {
         $set:{
           refreshToken:undefined,
-        }
+        },
+        // OR
+        // $unset:{
+        //   refreshToken:1,
+        // }
       },
       {
         new:true,
@@ -360,14 +364,14 @@ export const getUserChannelProfile = asyncHandler(
       }
     ]);
 
-    console.log(channel);
+    console.log(channel[0]);
 
     if(!channel?.length){
       throw new ApiError(404,"Channel does not exists.")
     }
 
     return res.status(200).json(
-      new ApiResponse(true,200,channel,"User channel fetched successfully")
+      new ApiResponse(true,200,channel[0],"User channel fetched successfully")
     );
   }
 );
@@ -377,7 +381,7 @@ export const getWatchHistory = asyncHandler(
     const user = await User.aggregate([
       {
         $match:{
-          _id: mongoose.Types.ObjectId(req.user?._id), 
+          _id: new mongoose.Types.ObjectId(req.user?._id), 
         }
       },
       {
@@ -396,7 +400,7 @@ export const getWatchHistory = asyncHandler(
                 pipeline:[
                   {
                     $project:{
-                      fullname:true,
+                      fullname:1,
                       username:1,
                       avatar:1
                     }
@@ -415,5 +419,11 @@ export const getWatchHistory = asyncHandler(
         }
       }
     ]);
+
+    console.log(user);
+
+    return res.status(200).json(
+      new ApiResponse(true,200,user[0].watchHistory,"Watch history fetched successfully")
+    );
   }
 );
